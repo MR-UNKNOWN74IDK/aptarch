@@ -4,7 +4,7 @@
 
 ## 简介
 
-APTMan 是一个用 Rust 编写的命令行工具，它模拟了 APT 包管理器的命令接口，但实际上将这些命令转换为对应的 pacman 操作。这使得习惯使用 APT 的用户能够快速上手 Arch Linux，而无需学习新的命令语法。
+APTArch 是一个用 Rust 编写的命令行工具，它模拟了 APT 包管理器的命令接口，但实际上将这些命令转换为对应的 pacman 操作。这使得习惯使用 APT 的用户能够快速上手 Arch Linux，而无需学习新的命令语法。
 
 ## 支持的命令
 
@@ -50,21 +50,25 @@ cd aptarch
 # 编译
 cargo build --release
 
-# 安装到系统路径
-sudo cp target/release/aptarch /usr/local/bin/apt
+# 安装到系统路径（使用 aptarch 命令名以避免冲突）
+sudo cp target/release/aptarch /usr/local/bin/aptarch
+
+# 可选：创建符号链接以使用 apt 命令（仅当系统不使用 apt 时）
+# sudo ln -s /usr/local/bin/aptarch /usr/local/bin/apt
 ```
 
 ### 从 AUR 仓库安装
 
 ```bash
-# 从 AUR 仓库安装
-yay -Syu aptarch
+# 从 AUR 仓库安装 
+# https://aur.archlinux.org/packages/aptarch-git
+yay -Syu aptarch-git
 
 # 从[自建源](https://github.com/taotieren/aur-repo)安装
 sudo pacman -Syu aptarch
 
 # 使用帮助
-sudo aptarch --help
+aptarch --help
 ```
 
 ## 使用示例
@@ -73,60 +77,60 @@ sudo aptarch --help
 
 ```bash
 # 更新软件源
-sudo apt update
+sudo aptarch update
 
 # 升级系统
-sudo apt upgrade
+sudo aptarch upgrade
 
 # 安装软件包
-sudo apt install firefox
+sudo aptarch install firefox
 
 # 搜索软件包
-apt search python
+aptarch search python
 
 # 显示软件包信息
-apt show firefox
+aptarch show firefox
 
 # 移除软件包
-sudo apt remove firefox
+sudo aptarch remove firefox
 
 # 彻底删除
-sudo apt purge firefox
+sudo aptarch purge firefox
 
 # 自动移除孤立包
-sudo apt autoremove
+sudo aptarch autoremove
 ```
 
 ### 高级选项
 
 ```bash
 # 自动确认安装
-sudo apt install -y vim
+sudo aptarch install -y vim
 
 # 仅下载不安装
-sudo apt install -d docker
+sudo aptarch install -d docker
 
 # 不升级已安装的包
-sudo apt install --no-upgrade nginx
+sudo aptarch install --no-upgrade nginx
 
 # 查看依赖关系
-apt why firefox
+aptarch why firefox
 
 # 查询无法安装的原因
-apt why-not some-package
+aptarch why-not some-package
 ```
 
 ### 彩蛋
 
 ```bash
 # 普通奶牛
-apt moo
+aptarch moo
 
 # 进阶奶牛
-apt moo moo
+aptarch moo moo
 
 # 终极奶牛
-apt moo moo moo
+aptarch moo moo moo
 ```
 
 ## 已知限制
