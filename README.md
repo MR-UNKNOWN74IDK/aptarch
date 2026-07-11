@@ -54,6 +54,19 @@ cargo build --release
 sudo cp target/release/aptarch /usr/local/bin/apt
 ```
 
+### 从 AUR 仓库安装
+
+```bash
+# 从 AUR 仓库安装
+yay -Syu aptarch
+
+# 从[自建源](https://github.com/taotieren/aur-repo)安装
+sudo pacman -Syu aptarch
+
+# 使用帮助
+sudo aptarch --help
+```
+
 ## 使用示例
 
 ### 基本操作
