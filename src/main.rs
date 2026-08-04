@@ -1,7 +1,6 @@
 use std::env;
 use std::process::{exit, Command};
 
-// ANSI 颜色常量
 const RESET: &str = "\x1b[0m";
 const RED: &str = "\x1b[31m";
 const GREEN: &str = "\x1b[32m";
@@ -9,12 +8,10 @@ const YELLOW: &str = "\x1b[33m";
 const CYAN: &str = "\x1b[36m";
 const PURPLE: &str = "\x1b[35m";
 
-/// 检查是否以 root 权限运行
 fn is_root() -> bool {
     if let Ok(output) = Command::new("id").arg("-u").output() {
         if output.status.success() {
-            let uid = String::from_utf8_lossy(&output.stdout);
-            return uid.trim() == "0";
+            return String::from_utf8_lossy(&output.stdout).trim() == "0";
         }
     }
     false
@@ -89,7 +86,6 @@ fn print_usage(use_color: bool) {
     );
 }
 
-/// 基础 moo 彩蛋
 fn moo() {
     println!("                  (__)");
     println!("                  (oo)");
@@ -100,28 +96,15 @@ fn moo() {
     println!("...\"Have you mooed today?\"...");
 }
 
-/// 彩色 moo moo 彩蛋
 fn moomoo() {
-    println!(
-        "                     {}__{}",
-        YELLOW, RESET
-    );
+    println!("                     {}__{}", YELLOW, RESET);
     println!(
         "{}             -------{}~({}{}{})~",
-             RED,
-             YELLOW,
-             CYAN,
-             "..",
-             YELLOW
+        RED, YELLOW, CYAN, "..", YELLOW
     );
     println!(
         "{}               ,----{}\\{}({}{}{})",
-             YELLOW,
-             RED,
-             YELLOW,
-             PURPLE,
-             "oo",
-             YELLOW
+        YELLOW, RED, YELLOW, PURPLE, "oo", YELLOW
     );
     println!("{}              /|____|,'", YELLOW);
     println!("{}               /\\   /\\", YELLOW);
@@ -138,21 +121,147 @@ fn moomoomoo() {
     println!("...\"Have you mooed today?\"...");
 }
 
+/// Returns true if `pactree` is on PATH.
+fn has_pactree() -> bool {
+    Command::new("which")
+        .arg("pactree")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+/// Run a command via `Command` with individual `.arg()` calls (no shell).
+/// Returns exit code or 1 on error.
+fn run_cmd(cmd: &str, args: &[&str], use_color: bool) -> i32 {
+    let status = Command::new(cmd)
+        .args(args)
+        .status()
+        .unwrap_or_else(|e| {
+            eprintln!("{}", err(use_color, &format!("执行命令失败: {}", e)));
+            exit(1);
+        });
+    status.code().unwrap_or(1)
+}
+
+/// Run a pipeline: `first_cmd`'s stdout feeds into `second_cmd`'s args.
+fn run_pipeline(
+    first_cmd: &str,
+    first_args: &[&str],
+    second_cmd: &str,
+    prefix_args: &[&str],
+    use_color: bool,
+) -> i32 {
+    let out = Command::new(first_cmd)
+        .args(first_args)
+        .output()
+        .unwrap_or_else(|e| {
+            eprintln!("{}", err(use_color, &format!("执行命令失败: {}", e)));
+            exit(1);
+        });
+    if !out.status.success() {
+        return out.status.code().unwrap_or(1);
+    }
+    let pkgs = String::from_utf8_lossy(&out.stdout)
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect::<Vec<_>>();
+    let mut second_args: Vec<&str> = prefix_args.to_vec();
+    for p in &pkgs {
+        second_args.push(p.as_str());
+    }
+    run_cmd(second_cmd, &second_args, use_color)
+}
+
+/// Parse a subcommand's own `--flag` / `--value` arguments into a command and arg list.
+/// Returns (program, vec_of_args).
+fn build_pacman_command(
+    flags: &str,
+    rest: &[String],
+    assume_yes: bool,
+    download_only: bool,
+    no_upgrade: bool,
+    reinstall_flag: bool,
+    purge_flag: bool,
+    use_color: bool,
+) -> (String, Vec<String>) {
+    let mut program = "pacman".to_string();
+    let mut args: Vec<String> = Vec::new();
+    let mut cmd_flags = flags.to_string();
+
+    // apply global flags
+    if assume_yes {
+        cmd_flags.push_str(" --noconfirm");
+    }
+    if no_upgrade {
+        cmd_flags.push_str(" --needed");
+    }
+    if reinstall_flag {
+        eprintln!(
+            "{}",
+            warn(use_color, "pacman 不支持直接重装，将尝试安装（可能不会重新下载）。")
+        );
+    }
+
+    // install/reinstall subcommand handling of --purge global flag
+    if purge_flag {
+        eprintln!(
+            "{}",
+            warn(use_color, "`--purge` 不适用于 install 命令，已忽略。")
+        );
+    }
+
+    let mut is_download_only = download_only;
+
+    // parse subcommand-level flags
+    let mut pkg_args: Vec<String> = Vec::new();
+    for a in rest {
+        match a.as_str() {
+            "-y" | "--yes" | "--assume-yes" => {
+                cmd_flags.push_str(" --noconfirm");
+            }
+            "-d" | "--download-only" => {
+                is_download_only = true;
+            }
+            "--no-upgrade" => {
+                cmd_flags.push_str(" --needed");
+            }
+            "--reinstall" => {}
+            "--purge" => {}
+            other => {
+                pkg_args.push(other.to_string());
+            }
+        }
+    }
+
+    // rebuild program/flags based on download-only override
+    if is_download_only {
+        program = "pacman".to_string();
+        cmd_flags = "-Sw".to_string();
+        if assume_yes {
+            cmd_flags.push_str(" --noconfirm");
+        }
+    }
+
+    // split flags into args
+    for f in cmd_flags.split_whitespace() {
+        args.push(f.to_string());
+    }
+    args.extend(pkg_args);
+
+    (program, args)
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let argc = args.len();
 
-    // 默认启用颜色
     let mut use_color = true;
-
-    // 全局选项标志
     let mut assume_yes = false;
     let mut download_only = false;
     let mut no_upgrade = false;
     let mut reinstall_flag = false;
     let mut purge_flag = false;
 
-    // 解析全局选项，定位子命令位置
     let mut cmd_index = 1;
     while cmd_index < argc {
         let arg = &args[cmd_index];
@@ -168,7 +277,7 @@ fn main() {
             }
             "-o" | "--option" => {
                 if cmd_index + 1 < argc {
-                    cmd_index += 2; // 跳过选项参数
+                    cmd_index += 2;
                 } else {
                     eprintln!("{}", err(use_color, "选项 -o 需要一个参数"));
                     exit(1);
@@ -184,8 +293,8 @@ fn main() {
                 }
                 continue;
             }
-            "--audit" => {
-                cmd_index += 1; // 忽略
+            "--audit" | "--cli-version" => {
+                cmd_index += 1;
                 continue;
             }
             "--no-color" => {
@@ -196,10 +305,6 @@ fn main() {
             "--color" => {
                 use_color = true;
                 cmd_index += 1;
-                continue;
-            }
-            "--cli-version" => {
-                cmd_index += 1; // 忽略
                 continue;
             }
             "-y" | "--yes" | "--assume-yes" => {
@@ -228,17 +333,15 @@ fn main() {
                 continue;
             }
             other => {
-                if !other.starts_with('-') {
-                    break; // 子命令
-                } else {
+                if other.starts_with('-') {
                     eprintln!("{}", err(use_color, &format!("未知选项 {}", other)));
                     exit(1);
                 }
+                break;
             }
         }
     }
 
-    // 没有提供子命令
     if cmd_index >= argc {
         if assume_yes || download_only || no_upgrade || reinstall_flag || purge_flag {
             eprintln!("{}", err(use_color, "选项必须与命令同时使用"));
@@ -250,40 +353,27 @@ fn main() {
     let cmd = args[cmd_index].clone();
     let rest_args = &args[cmd_index + 1..];
 
-    // moo 彩蛋
     if cmd == "moo" {
-        if rest_args.len() >= 1 && rest_args[0] == "moo" {
-            if rest_args.len() >= 2 && rest_args[1] == "moo" {
-                moomoomoo();
-            } else {
-                moomoo();
-            }
+        if rest_args.len() >= 2 && rest_args[0] == "moo" && rest_args[1] == "moo" {
+            moomoomoo();
+        } else if rest_args.len() >= 1 && rest_args[0] == "moo" {
+            moomoo();
         } else {
             moo();
         }
         exit(0);
     }
 
-    // 需要 root 权限的命令
     let needs_root = matches!(
         cmd.as_str(),
-                              "install"
-                              | "reinstall"
-                              | "remove"
-                              | "purge"
-                              | "update"
-                              | "upgrade"
-                              | "full-upgrade"
-                              | "autoremove"
-                              | "clean"
-                              | "autoclean"
+        "install" | "reinstall" | "remove" | "purge" | "update"
+            | "upgrade" | "full-upgrade" | "autoremove" | "clean" | "autoclean"
     );
     if needs_root && !is_root() {
         eprintln!("{}", err(use_color, "需要 root 权限才能执行此操作。"));
         exit(1);
     }
 
-    // 处理不支持的命令
     match cmd.as_str() {
         "changelog" => {
             eprintln!("{}", err(use_color, "无效的操作 changelog"));
@@ -337,113 +427,85 @@ fn main() {
         _ => {}
     }
 
-    // 构建 pacman 命令字符串
-    let mut pacman_cmd = String::from("pacman ");
-
-    match cmd.as_str() {
-        "update" => pacman_cmd.push_str("-Sy"),
-        "upgrade" => pacman_cmd.push_str("-Su"),
-        "full-upgrade" => pacman_cmd.push_str("-Syu"),
-        "clean" => pacman_cmd.push_str("-Scc"),
-        "autoclean" => pacman_cmd.push_str("-Sc"),
+    let status = match cmd.as_str() {
+        "update" => run_cmd("pacman", &["-Sy"], use_color),
+        "upgrade" => run_cmd("pacman", &["-Su"], use_color),
+        "full-upgrade" => run_cmd("pacman", &["-Syu"], use_color),
+        "clean" => run_cmd("pacman", &["-Scc"], use_color),
+        "autoclean" => run_cmd("pacman", &["-Sc"], use_color),
         "autoremove" | "autopurge" => {
-            pacman_cmd.push_str("-Rns $(pacman -Qdtq)");
             eprintln!("{}", warn(use_color, "将会移除所有孤立的依赖包。"));
-        }
-        "-h" | "--help" => {
-            print_usage(use_color);
-            exit(0);
-        }
-        "-v" | "--version" => {
-            println!("aptarch 1.0.0 (使用 pacman)");
-            pacman_cmd.push_str("-V");
+            if assume_yes {
+                run_pipeline(
+                    "pacman", &["-Qdtq"], "pacman", &["-Rns", "--noconfirm"],
+                    use_color,
+                )
+            } else {
+                run_pipeline("pacman", &["-Qdtq"], "pacman", &["-Rns"], use_color)
+            }
         }
         "install" | "reinstall" => {
-            pacman_cmd.push_str("-S");
-            if download_only {
-                pacman_cmd = "pacman -Sw".to_string();
-            }
-            if assume_yes {
-                pacman_cmd.push_str(" --noconfirm");
-            }
-            if no_upgrade {
-                pacman_cmd.push_str(" --needed");
-            }
-            if reinstall_flag {
-                eprintln!(
-                    "{}",
-                    warn(use_color, "pacman 不支持直接重装，将尝试安装（可能不会重新下载）。")
-                );
-            }
-            for a in rest_args {
-                match a.as_str() {
-                    "-y" | "--yes" => pacman_cmd.push_str(" --noconfirm"),
-                    "-d" | "--download-only" => {
-                        pacman_cmd = "pacman -Sw".to_string();
-                    }
-                    "--no-upgrade" => pacman_cmd.push_str(" --needed"),
-                    "--reinstall" => continue,
-                    "--purge" => continue, // install 不接受 purge
-                    _ => {
-                        pacman_cmd.push(' ');
-                        pacman_cmd.push_str(a);
-                    }
-                }
-            }
+            let (prog, args_vec) = build_pacman_command(
+                "-S", rest_args, assume_yes, download_only, no_upgrade,
+                reinstall_flag, purge_flag, use_color,
+            );
+            let arg_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            run_cmd(&prog, &arg_refs, use_color)
         }
         "remove" => {
             let purge = purge_flag || rest_args.contains(&"--purge".to_string());
-            pacman_cmd.push_str(if purge { "-Rns" } else { "-R" });
+            let mut args_vec: Vec<String> = Vec::new();
+            let flags = if purge { "-Rns" } else { "-R" };
+            for f in flags.split_whitespace() {
+                args_vec.push(f.to_string());
+            }
             if assume_yes {
-                pacman_cmd.push_str(" --noconfirm");
+                args_vec.push("--noconfirm".to_string());
             }
             for a in rest_args {
                 if a != "--purge" {
-                    pacman_cmd.push(' ');
-                    pacman_cmd.push_str(a);
+                    args_vec.push(a.clone());
                 }
             }
+            let arg_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            run_cmd("pacman", &arg_refs, use_color)
         }
         "purge" => {
-            pacman_cmd.push_str("-Rns");
+            let mut args_vec: Vec<String> = vec!["-Rns".to_string()];
             if assume_yes {
-                pacman_cmd.push_str(" --noconfirm");
+                args_vec.push("--noconfirm".to_string());
             }
-            for a in rest_args {
-                pacman_cmd.push(' ');
-                pacman_cmd.push_str(a);
-            }
+            args_vec.extend(rest_args.to_vec());
+            let arg_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            run_cmd("pacman", &arg_refs, use_color)
         }
         "search" => {
-            pacman_cmd.push_str("-Ss");
-            for a in rest_args {
-                pacman_cmd.push(' ');
-                pacman_cmd.push_str(a);
-            }
+            let mut args_vec: Vec<String> = vec!["-Ss".to_string()];
+            args_vec.extend(rest_args.to_vec());
+            let arg_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            run_cmd("pacman", &arg_refs, use_color)
         }
         "show" => {
-            pacman_cmd.push_str("-Si");
-            for a in rest_args {
-                pacman_cmd.push(' ');
-                pacman_cmd.push_str(a);
-            }
+            let mut args_vec: Vec<String> = vec!["-Si".to_string()];
+            args_vec.extend(rest_args.to_vec());
+            let arg_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            run_cmd("pacman", &arg_refs, use_color)
         }
         "download" => {
-            pacman_cmd.push_str("-Sw");
-            for a in rest_args {
-                pacman_cmd.push(' ');
-                pacman_cmd.push_str(a);
-            }
+            let mut args_vec: Vec<String> = vec!["-Sw".to_string()];
+            args_vec.extend(rest_args.to_vec());
+            let arg_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            run_cmd("pacman", &arg_refs, use_color)
         }
         "list" => {
             let mut installed = false;
             let mut upgradeable = false;
-            let mut list_pkgs = Vec::new();
+            let mut list_pkgs: Vec<String> = Vec::new();
             for a in rest_args {
                 match a.as_str() {
                     "--installed" => installed = true,
                     "--upgradeable" => upgradeable = true,
-                    "--all-versions" => {} // 忽略
+                    "--all-versions" => {}
                     other => {
                         if !other.starts_with('-') {
                             list_pkgs.push(other.to_string());
@@ -451,40 +513,35 @@ fn main() {
                     }
                 }
             }
+            let mut args_vec: Vec<String> = Vec::new();
             if installed {
-                pacman_cmd.push_str("-Q");
+                args_vec.push("-Q".to_string());
             } else if upgradeable {
-                pacman_cmd.push_str("-Qu");
+                args_vec.push("-Qu".to_string());
             } else {
-                pacman_cmd.push_str("-Sl");
+                args_vec.push("-Sl".to_string());
             }
-            for p in &list_pkgs {
-                pacman_cmd.push(' ');
-                pacman_cmd.push_str(p);
-            }
+            args_vec.extend(list_pkgs);
+            let arg_refs: Vec<&str> = args_vec.iter().map(|s| s.as_str()).collect();
+            run_cmd("pacman", &arg_refs, use_color)
         }
         "why" => {
             if rest_args.is_empty() {
                 eprintln!("{}", err(use_color, "请指定一个软件包以查询依赖原因"));
                 exit(1);
             }
-            // 优先尝试 pactree，其次 pacman -Qi
-            let has_pactree = Command::new("which")
-            .arg("pactree")
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false);
-            if has_pactree {
-                pacman_cmd = format!("pactree -r {}", rest_args[0]);
+            let pkg = &rest_args[0];
+            if has_pactree() {
+                run_cmd("pactree", &["-r", pkg], use_color)
             } else {
                 eprintln!(
                     "{}",
                     warn(
                         use_color,
-                         "未安装 pactree (pacman-contrib)，降级使用 pacman -Qi 显示依赖信息。"
+                        "未安装 pactree (pacman-contrib)，降级使用 pacman -Qi 显示依赖信息。"
                     )
                 );
-                pacman_cmd = format!("pacman -Qi {}", rest_args[0]);
+                run_cmd("pacman", &["-Qi", pkg], use_color)
             }
         }
         "why-not" => {
@@ -492,43 +549,29 @@ fn main() {
                 eprintln!("{}", err(use_color, "请指定一个软件包以查询为何无法安装"));
                 exit(1);
             }
-            let has_pactree = Command::new("which")
-            .arg("pactree")
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false);
-            if has_pactree {
-                pacman_cmd = format!("pactree -r {}", rest_args[0]);
+            let pkg = &rest_args[0];
+            if has_pactree() {
                 println!(
                     "{}",
                     info(
                         use_color,
-                         "注意：以下输出显示依赖关系，可能有助于分析为何该包未被安装。"
+                        "注意：以下输出显示依赖关系，可能有助于分析为何该包未被安装。"
                     )
                 );
+                run_cmd("pactree", &["-r", pkg], use_color)
             } else {
-                pacman_cmd = format!("pacman -Qi {}", rest_args[0]);
                 println!(
                     "{}",
                     info(use_color, "未安装 pactree，使用 pacman -Qi 显示信息。")
                 );
+                run_cmd("pacman", &["-Qi", pkg], use_color)
             }
         }
         _ => {
             eprintln!("{}", err(use_color, &format!("无效的操作 {}", cmd)));
             exit(1);
         }
-    }
+    };
 
-    // 通过 shell 执行转换后的命令（某些命令包含子命令替换）
-    let status = Command::new("sh")
-    .arg("-c")
-    .arg(&pacman_cmd)
-    .status()
-    .unwrap_or_else(|e| {
-        eprintln!("{}", err(use_color, &format!("执行命令失败: {}", e)));
-        exit(1);
-    });
-
-    exit(status.code().unwrap_or(1));
+    exit(status);
 }
