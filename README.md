@@ -1,158 +1,158 @@
 ### **AptArch**
 
-一个将 APT 命令转换为 pacman 操作的命令行工具，让 Debian/Ubuntu 用户能够在 Arch Linux 系统上无缝使用熟悉的 APT 命令。
+A command-line tool that translates APT commands into pacman operations, letting Debian/Ubuntu users use familiar APT commands seamlessly on Arch Linux.
 
-## 简介
+## Introduction
 
-APTArch 是一个用 Rust 编写的命令行工具，它模拟了 APT 包管理器的命令接口，但实际上将这些命令转换为对应的 pacman 操作。这使得习惯使用 APT 的用户能够快速上手 Arch Linux，而无需学习新的命令语法。
+AptArch is a command-line tool written in Rust that mimics the command interface of the APT package manager, but actually converts those commands into the corresponding pacman operations. This lets users who are used to APT get up and running on Arch Linux quickly, without having to learn a new command syntax.
 
-## 支持的命令
+## Supported Commands
 
-| APT 命令       | 功能描述       | 对应的 pacman 命令            |
-| -------------- | -------------- | ----------------------------- |
-| `list`         | 列出软件包     | `pacman -Q`/`-Sl`/`-Qu`       |
-| `search`       | 搜索软件包     | `pacman -Ss`                  |
-| `show`         | 显示软件包详情 | `pacman -Si`                  |
-| `install`      | 安装软件包     | `pacman -S`                   |
-| `reinstall`    | 重新安装       | `pacman -S`（警告）           |
-| `remove`       | 移除软件包     | `pacman -R`                   |
-| `purge`        | 彻底删除       | `pacman -Rns`                 |
-| `autoremove`   | 移除孤立包     | `pacman -Rns $(pacman -Qdtq)` |
-| `update`       | 更新软件源     | `pacman -Sy`                  |
-| `upgrade`      | 升级系统       | `pacman -Su`                  |
-| `full-upgrade` | 完全升级       | `pacman -Syu`                 |
-| `clean`        | 清理缓存       | `pacman -Scc`                 |
-| `autoclean`    | 清理旧缓存     | `pacman -Sc`                  |
-| `why`          | 依赖关系分析   | `pactree -r`                  |
-| `why-not`      | 安装原因分析   | `pactree -r`                  |
+| APT Command    | Description               | Corresponding pacman command  |
+| -------------- | -------------------------- | ------------------------------ |
+| `list`         | List packages              | `pacman -Q`/`-Sl`/`-Qu`        |
+| `search`       | Search for packages        | `pacman -Ss`                   |
+| `show`         | Show package details       | `pacman -Si`                   |
+| `install`      | Install a package          | `pacman -S`                    |
+| `reinstall`    | Reinstall a package        | `pacman -S` (with a warning)   |
+| `remove`       | Remove a package           | `pacman -R`                    |
+| `purge`        | Remove completely          | `pacman -Rns`                  |
+| `autoremove`   | Remove orphaned packages   | `pacman -Rns $(pacman -Qdtq)`  |
+| `update`       | Update package sources     | `pacman -Sy`                   |
+| `upgrade`      | Upgrade the system         | `pacman -Su`                   |
+| `full-upgrade` | Full system upgrade        | `pacman -Syu`                  |
+| `clean`        | Clean the cache            | `pacman -Scc`                  |
+| `autoclean`    | Clean old cache            | `pacman -Sc`                   |
+| `why`          | Dependency analysis        | `pactree -r`                   |
+| `why-not`      | Install-reason analysis    | `pactree -r`                   |
 
-## 支持的选项
+## Supported Options
 
-| 选项                  | 功能           | 对应 pacman 选项 |
-| --------------------- | -------------- | ---------------- |
-| `-y, --yes`           | 自动确认       | `--noconfirm`    |
-| `-d, --download-only` | 仅下载         | `-Sw`            |
-| `--no-upgrade`        | 不升级已安装包 | `--needed`       |
-| `--reinstall`         | 重新安装       | 警告提示         |
-| `--purge`             | 彻底删除       | `-Rns`           |
-| `--no-color`          | 关闭彩色输出   | -                |
-| `--color`             | 开启彩色输出   | -                |
+| Option                | Function                          | Corresponding pacman option |
+| --------------------- | ---------------------------------- | ---------------------------- |
+| `-y, --yes`           | Auto-confirm                       | `--noconfirm`                 |
+| `-d, --download-only` | Download only                      | `-Sw`                          |
+| `--no-upgrade`        | Don't upgrade installed packages   | `--needed`                     |
+| `--reinstall`         | Reinstall                          | Warning shown                  |
+| `--purge`             | Remove completely                  | `-Rns`                          |
+| `--no-color`          | Disable colored output             | -                               |
+| `--color`             | Enable colored output              | -                               |
 
-## 安装
+## Installation
 
-### 从源码编译
+### Build from source
 
 ```bash
-# 克隆仓库
+# Clone the repository
 git clone https://github.com/ZXCLF/aptarch.git
 cd aptarch
 
-# 编译
+# Build
 cargo build --release
 
-# 安装到系统路径（使用 aptarch 命令名以避免冲突）
+# Install into the system path (use the name `aptarch` to avoid conflicts)
 sudo cp target/release/aptarch /usr/local/bin/aptarch
 
-# 可选：创建符号链接以使用 apt 命令（仅当系统不使用 apt 时）
+# Optional: create a symlink to use the `apt` command (only if the system does not already use apt)
 # sudo ln -s /usr/local/bin/aptarch /usr/local/bin/apt
 ```
 
-### 从 AUR 仓库安装
+### Install from an AUR repository
 
 ```bash
-# 从 AUR 仓库安装 
+# Install from the AUR
 # https://aur.archlinux.org/packages/aptarch-git
 yay -Syu aptarch-git
 
-# 从[自建源](https://github.com/taotieren/aur-repo)安装
+# Install from a [self-hosted repository](https://github.com/taotieren/aur-repo)
 sudo pacman -Syu aptarch
 
-# 使用帮助
+# Show help
 aptarch --help
 ```
 
-## 使用示例
+## Usage Examples
 
-### 基本操作
+### Basic operations
 
 ```bash
-# 更新软件源
+# Update package sources
 sudo aptarch update
 
-# 升级系统
+# Upgrade the system
 sudo aptarch upgrade
 
-# 安装软件包
+# Install a package
 sudo aptarch install firefox
 
-# 搜索软件包
+# Search for a package
 aptarch search python
 
-# 显示软件包信息
+# Show package information
 aptarch show firefox
 
-# 移除软件包
+# Remove a package
 sudo aptarch remove firefox
 
-# 彻底删除
+# Purge (remove completely)
 sudo aptarch purge firefox
 
-# 自动移除孤立包
+# Automatically remove orphaned packages
 sudo aptarch autoremove
 ```
 
-### 高级选项
+### Advanced options
 
 ```bash
-# 自动确认安装
+# Auto-confirm installation
 sudo aptarch install -y vim
 
-# 仅下载不安装
+# Download only, don't install
 sudo aptarch install -d docker
 
-# 不升级已安装的包
+# Don't upgrade already-installed packages
 sudo aptarch install --no-upgrade nginx
 
-# 查看依赖关系
+# View dependency relationships
 aptarch why firefox
 
-# 查询无法安装的原因
+# Query why a package cannot be installed
 aptarch why-not some-package
 ```
 
-### 彩蛋
+### Easter eggs
 
 ```bash
-# 普通奶牛
+# Regular cow
 aptarch moo
 
-# 进阶奶牛
+# Advanced cow
 aptarch moo moo
 
-# 终极奶牛
+# Ultimate cow
 aptarch moo moo moo
 ```
 
-## 已知限制
+## Known Limitations
 
-由于 pacman 和 APT 在设计理念上的差异，以下命令/功能不被支持：
+Due to differences in design philosophy between pacman and APT, the following commands/features are not supported:
 
-| 不支持的功能              | 说明                                              |
-| ------------------------- | ------------------------------------------------- |
-| `changelog`               | pacman 不支持查看变更日志，可使用 `asp log`       |
-| `source`                  | 获取源代码请使用 ABS 或 asp 工具                  |
-| `edit-sources`            | 请手动编辑 `/etc/pacman.d/mirrorlist`             |
-| `satisfy`                 | pacman 不支持依赖字符串解析                       |
-| `history-*`               | pacman 无历史回滚机制，查看 `/var/log/pacman.log` |
-| `--fix-broken`            | pacman 事务失败自动回滚                           |
-| `--no-install-recommends` | pacman 无推荐依赖概念                             |
-| `-t/--target-release`     | Arch 滚动更新无版本概念                           |
-| `modernize-sources`       | 不适用于 Arch Linux                               |
+| Unsupported feature       | Explanation                                                            |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `changelog`                 | pacman does not support viewing changelogs; use `asp log` instead        |
+| `source`                    | To get source code, use the ABS or asp tools                              |
+| `edit-sources`              | Please edit `/etc/pacman.d/mirrorlist` manually                            |
+| `satisfy`                   | pacman does not support dependency string resolution                       |
+| `history-*`                 | pacman has no history rollback mechanism; check `/var/log/pacman.log`      |
+| `--fix-broken`              | pacman automatically rolls back failed transactions                        |
+| `--no-install-recommends`   | pacman has no concept of recommended dependencies                           |
+| `-t/--target-release`       | Arch's rolling release model has no concept of release versions              |
+| `modernize-sources`         | Not applicable to Arch Linux                                               |
 
-## 许可证
+## License
 
-本项目采用 GPL v3.0 许可证。
+This project is licensed under GPL v3.0.
 
-## 致谢
+## Acknowledgments
 
-- 灵感来源于 [aptman](https://github.com/Limou233/aptman)
+- Inspired by [aptman](https://github.com/Limou233/aptman)

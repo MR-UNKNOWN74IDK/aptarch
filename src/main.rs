@@ -39,50 +39,51 @@ fn info(use_color: bool, msg: &str) -> String {
 
 fn print_usage(use_color: bool) {
     println!(r#"aptarch 1.0.0 (amd64)
-    用法： apt [选项] 命令
+    Usage: apt [options] command
 
-    命令行软件包管理器 apt 提供软件包搜索，管理和信息查询等功能。
-    它提供的功能与其他 APT 工具相同（像 apt-get 和 apt-cache），
-    但是默认情况下被设置得更适合交互。
+    The command-line package manager apt provides package search,
+    management, and information query functions. It offers the same
+    functionality as other APT tools (like apt-get and apt-cache),
+    but is set up by default to be more suitable for interactive use.
 
-    常用命令：
-    list - 根据名称列出软件包
-    search - 搜索软件包描述
-    show - 显示软件包细节
-    install - 安装软件包
-    reinstall - 重新安装软件包
-    remove - 移除软件包
-    purge - 彻底删除软件包及配置
-    autoremove - 自动卸载所有不再使用的软件包
-    update - 更新可用软件包列表
-    upgrade - 通过 安装/升级 软件来更新系统
-    full-upgrade - 通过 卸载/安装/升级 来更新系统
-    edit-sources - 编辑软件源信息文件
-    satisfy - 使系统满足依赖关系字符串
-    why - 回溯依赖关系以解释软件包存在原因
-    why-not - 回溯依赖关系以解释软件包不可安装原因
-    history-list - 显示操作历史列表
-    history-info - 显示特定事务的详细信息
-    history-redo - 重新执行历史事务
-    history-undo - 撤销历史事务
-    history-rollback - 回滚到历史事务状态
+    Common commands:
+    list - list packages by name
+    search - search package descriptions
+    show - show package details
+    install - install packages
+    reinstall - reinstall packages
+    remove - remove packages
+    purge - remove packages and their configuration completely
+    autoremove - automatically remove all unused packages
+    update - update the list of available packages
+    upgrade - upgrade the system by installing/upgrading packages
+    full-upgrade - upgrade the system by removing/installing/upgrading packages
+    edit-sources - edit source information files
+    satisfy - satisfy dependency strings
+    why - trace back dependencies to explain why a package exists
+    why-not - trace back dependencies to explain why a package cannot be installed
+    history-list - show the list of operation history
+    history-info - show details for a specific transaction
+    history-redo - redo a historical transaction
+    history-undo - undo a historical transaction
+    history-rollback - roll back to a historical transaction state
 
-    全局选项：
-    -h, --help        显示简短的帮助信息。
-    -v, --version     显示程序版本号。
-    -o, --option      设置一个配置选项（忽略）。
-    -c, --config-file 指定一个额外的配置文件（忽略）。
-    --audit           显示审计信息（忽略）。
-    --no-color        关闭彩色输出。
-    --color           强制开启彩色输出。
-    --cli-version     请求特定 CLI 版本（忽略）。
+    Global options:
+    -h, --help        show a short help message.
+    -v, --version     show the program version.
+    -o, --option      set a configuration option (ignored).
+    -c, --config-file specify an additional configuration file (ignored).
+    --audit           show audit information (ignored).
+    --no-color        turn off colored output.
+    --color           force colored output on.
+    --cli-version     request a specific CLI version (ignored).
 
-    参见 apt(8) 以获取更多关于可用命令的信息。
-    本程序将 APT 命令转换为 pacman 操作。
+    See apt(8) for more information about available commands.
+    This program translates APT commands into pacman operations.
     "#);
     println!(
         "{}",
-        clr(use_color, YELLOW, "                                         本 APT 具有超级牛力。")
+        clr(use_color, YELLOW, "                                         This APT has Super Cow Powers.")
     );
 }
 
@@ -137,7 +138,7 @@ fn run_cmd(cmd: &str, args: &[&str], use_color: bool) -> i32 {
         .args(args)
         .status()
         .unwrap_or_else(|e| {
-            eprintln!("{}", err(use_color, &format!("执行命令失败: {}", e)));
+            eprintln!("{}", err(use_color, &format!("Failed to execute command: {}", e)));
             exit(1);
         });
     status.code().unwrap_or(1)
@@ -155,7 +156,7 @@ fn run_pipeline(
         .args(first_args)
         .output()
         .unwrap_or_else(|e| {
-            eprintln!("{}", err(use_color, &format!("执行命令失败: {}", e)));
+            eprintln!("{}", err(use_color, &format!("Failed to execute command: {}", e)));
             exit(1);
         });
     if !out.status.success() {
@@ -198,7 +199,7 @@ fn build_pacman_command(
     if reinstall_flag {
         eprintln!(
             "{}",
-            warn(use_color, "pacman 不支持直接重装，将尝试安装（可能不会重新下载）。")
+            warn(use_color, "pacman does not support direct reinstallation; will attempt install instead (may not re-download).")
         );
     }
 
@@ -206,7 +207,7 @@ fn build_pacman_command(
     if purge_flag {
         eprintln!(
             "{}",
-            warn(use_color, "`--purge` 不适用于 install 命令，已忽略。")
+            warn(use_color, "`--purge` does not apply to the install command; ignored.")
         );
     }
 
@@ -272,14 +273,14 @@ fn main() {
             }
             "-v" | "--version" => {
                 println!("aptarch 1.0.0 (amd64)");
-                println!("基于 pacman 的 APT 界面");
+                println!("An APT interface based on pacman");
                 exit(0);
             }
             "-o" | "--option" => {
                 if cmd_index + 1 < argc {
                     cmd_index += 2;
                 } else {
-                    eprintln!("{}", err(use_color, "选项 -o 需要一个参数"));
+                    eprintln!("{}", err(use_color, "Option -o requires an argument"));
                     exit(1);
                 }
                 continue;
@@ -288,7 +289,7 @@ fn main() {
                 if cmd_index + 1 < argc {
                     cmd_index += 2;
                 } else {
-                    eprintln!("{}", err(use_color, "选项 -c 需要一个参数"));
+                    eprintln!("{}", err(use_color, "Option -c requires an argument"));
                     exit(1);
                 }
                 continue;
@@ -334,7 +335,7 @@ fn main() {
             }
             other => {
                 if other.starts_with('-') {
-                    eprintln!("{}", err(use_color, &format!("未知选项 {}", other)));
+                    eprintln!("{}", err(use_color, &format!("Unknown option {}", other)));
                     exit(1);
                 }
                 break;
@@ -344,7 +345,7 @@ fn main() {
 
     if cmd_index >= argc {
         if assume_yes || download_only || no_upgrade || reinstall_flag || purge_flag {
-            eprintln!("{}", err(use_color, "选项必须与命令同时使用"));
+            eprintln!("{}", err(use_color, "Options must be used together with a command"));
         }
         print_usage(use_color);
         exit(1);
@@ -370,58 +371,58 @@ fn main() {
             | "upgrade" | "full-upgrade" | "autoremove" | "clean" | "autoclean"
     );
     if needs_root && !is_root() {
-        eprintln!("{}", err(use_color, "需要 root 权限才能执行此操作。"));
+        eprintln!("{}", err(use_color, "Root privileges are required to perform this operation."));
         exit(1);
     }
 
     match cmd.as_str() {
         "changelog" => {
-            eprintln!("{}", err(use_color, "无效的操作 changelog"));
-            println!("pacman 不支持查看变更日志。请从 AUR 安装 asp 并使用 `asp log` 命令。");
+            eprintln!("{}", err(use_color, "Invalid operation: changelog"));
+            println!("pacman does not support viewing changelogs. Install asp from the AUR and use the `asp log` command.");
             exit(1);
         }
         "source" => {
-            eprintln!("{}", err(use_color, "无效的操作 source"));
-            println!("pacman 不支持获取源代码。请使用 ABS 或 asp 工具。");
+            eprintln!("{}", err(use_color, "Invalid operation: source"));
+            println!("pacman does not support fetching source code. Please use the ABS or asp tools.");
             exit(1);
         }
         "edit-sources" => {
-            eprintln!("{}", err(use_color, "无效的操作 edit-sources"));
-            println!("pacman 不支持直接编辑软件源。请手动编辑 /etc/pacman.d/mirrorlist 文件。");
+            eprintln!("{}", err(use_color, "Invalid operation: edit-sources"));
+            println!("pacman does not support directly editing package sources. Please manually edit the /etc/pacman.d/mirrorlist file.");
             exit(1);
         }
         "satisfy" => {
-            eprintln!("{}", err(use_color, "pacman 不支持 satisfy 命令"));
-            println!("无法自动满足依赖关系字符串。");
+            eprintln!("{}", err(use_color, "pacman does not support the satisfy command"));
+            println!("Cannot automatically satisfy the dependency string.");
             exit(1);
         }
         "--fix-broken" => {
-            eprintln!("{}", err(use_color, "无法识别的选项 --fix-broken"));
-            println!("pacman 在事务失败时会自动回滚，无需单独修复。");
+            eprintln!("{}", err(use_color, "Unrecognized option --fix-broken"));
+            println!("pacman automatically rolls back on transaction failure, so no separate fix is needed.");
             exit(1);
         }
         "--no-install-recommends" => {
-            eprintln!("{}", err(use_color, "无法识别的选项 --no-install-recommends"));
-            println!("pacman 不支持推荐依赖机制，所有依赖均为强制安装。");
+            eprintln!("{}", err(use_color, "Unrecognized option --no-install-recommends"));
+            println!("pacman has no concept of recommended dependencies; all dependencies are mandatory.");
             exit(1);
         }
         "-t" | "--target-release" => {
-            eprintln!("{}", err(use_color, &format!("无法识别的选项 {}", cmd)));
-            println!("Arch Linux 采用滚动更新，不支持指定发行版本。");
+            eprintln!("{}", err(use_color, &format!("Unrecognized option {}", cmd)));
+            println!("Arch Linux uses a rolling release model and does not support specifying a release version.");
             exit(1);
         }
         "-a" | "--architecture" => {
-            eprintln!("{}", err(use_color, "无需指定架构"));
-            println!("pacman 会自动处理多架构，无需手动干预。");
+            eprintln!("{}", err(use_color, "No need to specify an architecture"));
+            println!("pacman automatically handles multiple architectures; no manual intervention is needed.");
             exit(1);
         }
         "history-list" | "history-info" | "history-redo" | "history-undo" | "history-rollback" => {
-            eprintln!("{}", err(use_color, "此系统不支持 APT 历史功能"));
-            println!("pacman 没有内置历史回滚机制，但您可以查看 /var/log/pacman.log 获取操作记录。");
+            eprintln!("{}", err(use_color, "This system does not support APT history features"));
+            println!("pacman has no built-in history rollback mechanism, but you can check /var/log/pacman.log for a record of operations.");
             exit(1);
         }
         "modernize-sources" => {
-            eprintln!("{}", err(use_color, "modernize-sources 不适用于 Arch"));
+            eprintln!("{}", err(use_color, "modernize-sources does not apply to Arch"));
             exit(1);
         }
         _ => {}
@@ -434,7 +435,7 @@ fn main() {
         "clean" => run_cmd("pacman", &["-Scc"], use_color),
         "autoclean" => run_cmd("pacman", &["-Sc"], use_color),
         "autoremove" | "autopurge" => {
-            eprintln!("{}", warn(use_color, "将会移除所有孤立的依赖包。"));
+            eprintln!("{}", warn(use_color, "This will remove all orphaned dependency packages."));
             if assume_yes {
                 run_pipeline(
                     "pacman", &["-Qdtq"], "pacman", &["-Rns", "--noconfirm"],
@@ -527,7 +528,7 @@ fn main() {
         }
         "why" => {
             if rest_args.is_empty() {
-                eprintln!("{}", err(use_color, "请指定一个软件包以查询依赖原因"));
+                eprintln!("{}", err(use_color, "Please specify a package to query the reason for its dependency"));
                 exit(1);
             }
             let pkg = &rest_args[0];
@@ -538,7 +539,7 @@ fn main() {
                     "{}",
                     warn(
                         use_color,
-                        "未安装 pactree (pacman-contrib)，降级使用 pacman -Qi 显示依赖信息。"
+                        "pactree (pacman-contrib) is not installed; falling back to pacman -Qi to show dependency information."
                     )
                 );
                 run_cmd("pacman", &["-Qi", pkg], use_color)
@@ -546,7 +547,7 @@ fn main() {
         }
         "why-not" => {
             if rest_args.is_empty() {
-                eprintln!("{}", err(use_color, "请指定一个软件包以查询为何无法安装"));
+                eprintln!("{}", err(use_color, "Please specify a package to query why it cannot be installed"));
                 exit(1);
             }
             let pkg = &rest_args[0];
@@ -555,20 +556,20 @@ fn main() {
                     "{}",
                     info(
                         use_color,
-                        "注意：以下输出显示依赖关系，可能有助于分析为何该包未被安装。"
+                        "Note: the output below shows dependency relationships, which may help explain why this package was not installed."
                     )
                 );
                 run_cmd("pactree", &["-r", pkg], use_color)
             } else {
                 println!(
                     "{}",
-                    info(use_color, "未安装 pactree，使用 pacman -Qi 显示信息。")
+                    info(use_color, "pactree is not installed; using pacman -Qi to show information.")
                 );
                 run_cmd("pacman", &["-Qi", pkg], use_color)
             }
         }
         _ => {
-            eprintln!("{}", err(use_color, &format!("无效的操作 {}", cmd)));
+            eprintln!("{}", err(use_color, &format!("Invalid operation: {}", cmd)));
             exit(1);
         }
     };
