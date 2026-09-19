@@ -155,4 +155,4 @@ This project is licensed under GPL v3.0.
 
 ## Acknowledgments
 
-- Inspired by [aptman](https://github.com/Limou233/aptman)
+- Inspired by [aptman](https://github.com/MR-UNKNOWN74IDK/aptman/tree/main)
