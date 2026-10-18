@@ -147,6 +147,10 @@ My actively maintained flagship project is [aptOS](https://github.com/MR-UNKNOWN
 
 This project is licensed under GPL v3.0.
 
+## Credits
+
+Original project by [aptarch](https://github.com/ZXCLF/aptarch). This is an English port with minor modifications.
+
 ## Acknowledgments
 
 - Inspired by [aptman](https://github.com/MR-UNKNOWN74IDK/aptman/tree/main)
