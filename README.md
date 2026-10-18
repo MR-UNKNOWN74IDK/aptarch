@@ -2,6 +2,8 @@
 
 A command-line tool that translates APT commands into pacman operations, letting Debian/Ubuntu users use familiar APT commands seamlessly on Arch Linux.
 
+An English port of the original Chinese project, forked and translated for personal use while learning Arch Linux.
+
 ## Introduction
 
 AptArch is a command-line tool written in Rust that mimics the command interface of the APT package manager, but actually converts those commands into the corresponding pacman operations. This lets users who are used to APT get up and running on Arch Linux quickly, without having to learn a new command syntax.
@@ -44,31 +46,17 @@ AptArch is a command-line tool written in Rust that mimics the command interface
 
 ```bash
 # Clone the repository
-git clone https://github.com/ZXCLF/aptarch.git
+git clone https://github.com/MR-UNKNOWN74IDK/aptarch.git
 cd aptarch
 
 # Build
 cargo build --release
 
-# Install into the system path (use the name `aptarch` to avoid conflicts)
+# Install into the system path
 sudo cp target/release/aptarch /usr/local/bin/aptarch
 
-# Optional: create a symlink to use the `apt` command (only if the system does not already use apt)
+# Optional: create a symlink to use the `apt` command (only if the system does not already have apt)
 # sudo ln -s /usr/local/bin/aptarch /usr/local/bin/apt
-```
-
-### Install from an AUR repository
-
-```bash
-# Install from the AUR
-# https://aur.archlinux.org/packages/aptarch-git
-yay -Syu aptarch-git
-
-# Install from a [self-hosted repository](https://github.com/taotieren/aur-repo)
-sudo pacman -Syu aptarch
-
-# Show help
-aptarch --help
 ```
 
 ## Usage Examples
@@ -148,6 +136,12 @@ Due to differences in design philosophy between pacman and APT, the following co
 | `--no-install-recommends`   | pacman has no concept of recommended dependencies                           |
 | `-t/--target-release`       | Arch's rolling release model has no concept of release versions              |
 | `modernize-sources`         | Not applicable to Arch Linux                                               |
+
+## Status
+
+Not deprecated or archived — just not under independent active development. Updates to this port follow whatever happens upstream in the original project: if it gets updated, this gets updated accordingly.
+
+My actively maintained flagship project is [aptOS](https://github.com/MR-UNKNOWN74IDK/aptOS).
 
 ## License
 
